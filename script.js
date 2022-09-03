@@ -6,11 +6,14 @@ const total = document.querySelector('.display');
 total.textContent = INITIAL_VALUE.toString();
 
 let error = false;
+let buttonContent = '';
 let temporaryButton = '';
 let temporaryTotal = 0;
 let firstNumber = '0';
 let operator = '';
 let secondNumber = '0';
+let eventKey = '';
+let stringResult;
 
 const operators = document.querySelectorAll('.operator');
 const functions = document.querySelectorAll('.function');
@@ -19,36 +22,76 @@ const numbers = document.querySelectorAll('.number');
 const buttons = document.querySelectorAll('button');
 buttons.forEach(button => {
     changeButtonColorOnPress();
-
+    
     button.addEventListener('click', () => {
-        if (button.textContent === 'AC') {
+        buttonContent = button.textContent;
+        if (buttonContent === 'AC') {
             clearAll();
         }
-        else if (button.textContent === '=') {
+        else if (buttonContent === '=') {
             displayResult();
         }
-        else if (button.textContent === 'C') {
+        else if (buttonContent === 'C') {
             removeLastDigit();
         }
-        else if (button.textContent === '+/-') {
+        else if (buttonContent === '+/-') {
             changeSign();
         }
-        else if ((Number.isInteger(+button.textContent) || button.textContent === '.') && operator !== '' && total.textContent.length < 9) {
-            temporaryButton = button.textContent;
+        else if ((Number.isInteger(+buttonContent) || buttonContent === '.') && operator !== '') {
+            temporaryButton = buttonContent;
             secondNumber = displayNumber(temporaryButton, secondNumber);
         }
-        else if (button.textContent === '+' || button.textContent === '-' ||
-            button.textContent === '*' || button.textContent === '/') {
+        else if (buttonContent === '+' || buttonContent === '-' ||
+            buttonContent === '*' || buttonContent === '/') {
             if (operator && secondNumber !== '0') {
                 displayResult();
             }
-            operator = button.textContent;
+            operator = buttonContent;
         }
-        else if ((Number.isInteger(+button.textContent) || button.textContent === '.') && operator === '' && total.textContent.length < 9) {
-            temporaryButton = button.textContent;
+        else if ((Number.isInteger(+buttonContent) || buttonContent === '.') && operator === '') {
+            temporaryButton = buttonContent;
             firstNumber = displayNumber(temporaryButton, firstNumber);
         }
+        if (total.textContent.length < 10) {
+            total.classList.remove('display-large-number');
+        }
     });
+});
+
+document.addEventListener('keydown', event => {
+    eventKey = event.key;
+    console.log(eventKey);
+    changeButtonColorOnKeyboardPress();
+    if (event.key === 'Backspace') {
+        clearAll();
+    }
+    else if (event.key === 'Enter' || event.key === '=') {
+        displayResult();
+    }
+    else if (event.key === 'Delete') {
+        removeLastDigit();
+    }
+    else if (event.key === '_') {
+        changeSign();
+    }
+    else if ((Number.isInteger(+event.key) || event.key === '.') && operator !== '') {
+        temporaryButton = event.key;
+        secondNumber = displayNumber(temporaryButton, secondNumber);
+    }
+    else if (event.key === '+' || event.key === '-' ||
+        event.key === '*' || event.key === '/') {
+        if (operator && secondNumber !== '0') {
+            displayResult();
+        }
+        operator = event.key;
+    }
+    else if ((Number.isInteger(+event.key) || event.key === '.') && operator === '') {
+        temporaryButton = event.key;
+        firstNumber = displayNumber(temporaryButton, firstNumber);
+    }
+    if (total.textContent.length < 10) {
+        total.classList.remove('display-large-number');
+    }
 });
 
 function changeButtonColorOnPress() {
@@ -57,13 +100,13 @@ function changeButtonColorOnPress() {
         op.addEventListener('click', () => {
 
             operators.forEach(op => {
-                op.classList.remove('op-click', 'equal-white');
+                op.classList.remove('op-click');
             });
 
             if (op.textContent === '=') {
-                op.classList.add('equal-white');
+                op.classList.add('op-click');
                 setTimeout(() => {
-                    op.classList.remove('equal-white');
+                    op.classList.remove('op-click');
                 }, 200);
             }
             else {
@@ -93,8 +136,52 @@ function changeButtonColorOnPress() {
     });
 }
 
+function changeButtonColorOnKeyboardPress() {
+
+    operators.forEach(op => {
+        op.classList.remove('op-click');
+    });
+
+    operators.forEach(op => {
+        if (eventKey === op.textContent && eventKey === '=' || functionToString(op.textContent) && eventKey === 'Enter') {
+            op.classList.add('op-click');
+            setTimeout(() => {
+                op.classList.remove('op-click');
+            }, 200);
+        }
+        else if ((eventKey === op.textContent && eventKey === '+') ||
+            (eventKey === op.textContent && eventKey === '-') ||
+            (eventKey === op.textContent && eventKey === '*') || 
+            (eventKey === op.textContent && eventKey === '/')) {
+            console.log('a')
+            op.classList.add('op-click');
+        }
+    });
+
+
+    functions.forEach(func => {
+        if (eventKey === functionToString(func.textContent)) {
+            func.classList.add('func-click');
+            setTimeout(() => {
+                func.classList.remove('func-click');
+            }, 200);
+        }
+    });
+
+    numbers.forEach(num => {
+        if (eventKey === num.textContent) {
+            num.classList.add('num-click');
+            setTimeout(() => {
+                num.classList.remove('num-click');
+            }, 200);
+        }
+    });
+    return 0;
+}
+
 function displayNumber(button, number) {
-    if (Number.isInteger(+button)) {
+    if(number.length > 8) return number;
+    else if (Number.isInteger(+button)) {
         number += button;
         number = removeZeroInFront(number);
     }
@@ -110,10 +197,23 @@ function displayResult() {
         total.textContent = firstNumber;
         return;
     }
-    total.textContent = operate(+firstNumber, operator, +secondNumber);
+    stringResult = operate(+firstNumber, operator, +secondNumber);
+    stringResult = stringResult.toString();
+    if (stringResult.length > 8 && stringResult.charAt(1) !== '.') {
+        total.classList.add('display-large-number');
+        total.textContent = `${stringResult.slice(0, 8)}e${stringResult.length - 8}`;
+        firstNumber = total.textContent;
+        operator = '';
+        secondNumber = '0';
+        return;
+    }
+    else {
+        total.textContent = operate(+firstNumber, operator, +secondNumber); 
+    }
+    
     temporaryTotal = +total.textContent;
     if (isNaN(temporaryTotal) || (!isFinite(temporaryTotal))) {
-        total.textContent = 'Lmao';
+        total.textContent = 'Over 9000';
     }
     else {
         total.textContent = parseFloat(temporaryTotal.toFixed(5));
@@ -134,6 +234,9 @@ function clearAll() {
     firstNumber = '0';
     operator = '';
     secondNumber = '0';
+    operators.forEach(op => {
+        op.classList.remove('op-click', 'equal-white');
+    });
 }
 
 function removeLastDigit() {
@@ -235,4 +338,18 @@ function operatorToName(operator) {
             break;
     }
     return name;
+}
+
+function functionToString(textContent) {
+    let string;
+    switch (textContent) {
+        case 'AC': string = 'Backspace';
+            break;
+        case 'C': string = 'Delete';
+            break;
+        case '+/-': string = '_';
+            break;
+        case '=': string = 'Enter';
+    }
+    return string;
 }
